@@ -21,7 +21,7 @@ boolean sonido, musica, control /*true = sensor, false = joystick*/;
 
 // control de tiempo  
 long tiempo_ant;  // para intermitencia de mensaje "esperando conexión"
-boolean blinker;  // estado de visibilidad del mensaje
+boolean blinker;  // estado de visibilidad del mensaje de conexión
 
 // objeto para cargar las diferentes imágenes que conforman los estados y su control
 Imagenes imagen;
