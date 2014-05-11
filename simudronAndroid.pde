@@ -37,7 +37,7 @@ float acelerometroX, acelerometroY, acelerometroZ;
 float giroscopoX, giroscopoY, giroscopoZ;
 
 //*********************************************************************
-// función de incialización
+// función de incialización - Hola
 //*********************************************************************
 void setup() {
     // Tamaño de la imagen de background y orientación
