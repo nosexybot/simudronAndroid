@@ -36,6 +36,14 @@ String myIPAddress, ipPCRemoto = "192.168.1.2";
 float acelerometroX, acelerometroY, acelerometroZ;
 float giroscopoX, giroscopoY, giroscopoZ;
 
+// control de posición de joysticks
+float joystickIzqX = 0.15*width;
+float joystickIzqY = 0.8*height;
+float joystickDerX = 0.85*width;
+float joystickDerY = 0.8*height; 
+boolean firstimeDer = true;
+boolean firstimeIzq = true;
+
 //*********************************************************************
 // función de incialización
 //*********************************************************************
@@ -253,11 +261,86 @@ void draw() {
       case JUEGO:
         image(imagen.vImagenes[15], 0.1*width, 0.15*height);  // pulsador "pause"
         if(!control) {
-          image(imagen.vImagenes[5], 0.2*width, 0.8*height); //Joystick izq.
-          image(imagen.vImagenes[6], 0.2*width, 0.8*height);
-          
-          image(imagen.vImagenes[5], 0.8*width, 0.8*height); //Joystick der.
-          image(imagen.vImagenes[6], 0.8*width, 0.8*height);
+            //Joystick der.
+            image(imagen.vImagenes[5], 0.85*width, 0.8*height);
+            //Joystick izq.
+            image(imagen.vImagenes[5], 0.15*width, 0.8*height);
+            
+            if(mousePressed) {
+                //joystick izquierdo pulsado
+                if(mouseY > 0.8*height - imagen.vImagenes[6].height/2 && 
+                   mouseY < 0.8*height + imagen.vImagenes[6].height/2 && 
+                   mouseX > 0.15*width - imagen.vImagenes[6].width/2 &&
+                   mouseX < 0.15*width + imagen.vImagenes[6].width/2) {
+                  
+                    if(firstimeIzq) {
+                        firstimeIzq = false;
+                        image(imagen.vImagenes[6], joystickIzqX, joystickIzqY);
+                    }
+                }
+                else
+                    image(imagen.vImagenes[6], joystickIzqX, joystickIzqY);
+
+                if (!firstimeIzq) {
+                    joystickIzqX += mouseX - pmouseX;
+                    joystickIzqY += mouseY - pmouseY;
+                    if (joystickIzqX > (0.15*width + imagen.vImagenes[6].width/2)){
+                        joystickIzqX = 0.15*width + imagen.vImagenes[6].width/2;
+                    }
+                    else if (joystickIzqX < (0.15*width - imagen.vImagenes[6].width/2)) {
+                        joystickIzqX = 0.15*width - imagen.vImagenes[6].width/2;
+                    }
+                    if (joystickIzqY > (0.8*height + imagen.vImagenes[6].height/2)){
+                        joystickIzqY = 0.8*height + imagen.vImagenes[6].height/2;
+                    }
+                    else if (joystickIzqY < (0.8*height - imagen.vImagenes[6].height/2)) {
+                        joystickIzqY = 0.8*height - imagen.vImagenes[6].height/2;
+                    }
+                    image(imagen.vImagenes[6], joystickIzqX, joystickIzqY);
+                }
+                
+                //joystick derecho pulsado.
+                if(mouseY > 0.8*height - imagen.vImagenes[6].height/2 && 
+                   mouseY < 0.8*height + imagen.vImagenes[6].height/2 && 
+                   mouseX > 0.85*width - imagen.vImagenes[6].width/2 &&
+                   mouseX < 0.85*width + imagen.vImagenes[6].width/2) {
+              
+                    if(firstimeDer) {
+                        firstimeDer = false;
+                        image(imagen.vImagenes[6], joystickDerX, joystickDerY);
+                    }
+                }
+                else
+                    image(imagen.vImagenes[6], joystickDerX, joystickDerY);
+
+                if (!firstimeDer) {
+                    joystickDerX += mouseX - pmouseX;
+                    joystickDerY += mouseY - pmouseY;
+                    if (joystickDerX > (0.85*width + imagen.vImagenes[6].width/2)){
+                        joystickDerX = 0.85*width + imagen.vImagenes[6].width/2;
+                    }
+                    else if (joystickDerX < (0.85*width - imagen.vImagenes[6].width/2)) {
+                        joystickDerX = 0.85*width - imagen.vImagenes[6].width/2;
+                    }
+                    if (joystickDerY > (0.8*height + imagen.vImagenes[6].height/2)){
+                        joystickDerY = 0.8*height + imagen.vImagenes[6].height/2;
+                    }
+                    else if (joystickDerY < (0.8*height - imagen.vImagenes[6].height/2)) {
+                        joystickDerY = 0.8*height - imagen.vImagenes[6].height/2;
+                    }
+                    image(imagen.vImagenes[6], joystickDerX, joystickDerY);
+                }
+            }
+            else {
+                joystickDerX = 0.85*width;
+                joystickDerY = 0.8*height;
+                joystickIzqX = 0.15*width;
+                joystickIzqY = 0.8*height;
+                image(imagen.vImagenes[6], joystickDerX, joystickDerY);
+                image(imagen.vImagenes[6], joystickIzqX, joystickIzqY);
+                firstimeDer = true;
+                firstimeIzq = true;
+            }
         }
         else {
           image(imagen.vImagenes[6], 0.2*width, 0.8*height);
