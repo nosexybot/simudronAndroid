@@ -1,4 +1,4 @@
-/*//Inicia clase Log
+//Inicia clase Log
 class Log {
   private PrintWriter output;  //Permite la creacion de archivos
   private BufferedReader reader;
@@ -15,7 +15,7 @@ class Log {
   }
  
   //Crea una lista de los archivos existentes en el directorio actual
-  /*private String[] listFileNames(String dir) {  //recibe como parametro la ruta actual
+  private String[] listFileNames(String dir) {  //recibe como parametro la ruta actual
     File file = new File(dir);  //Crea un objeto de la clase File
     if (file.isDirectory()) {  //Comprobamos que sea un directorio y no un archivo
       String names[] = file.list();  //Cargamos la lista de archivos en el vector names[]
@@ -41,7 +41,7 @@ class Log {
   public void close() {
     output.flush();  //Vaciamos buffer de escritura
     output.close();  //Cerramos el archivo
-    reader.close();  //Cerramos el archivo
+    //reader.close();  //Cerramos el archivo
   }
  
   //Escribe datos nuevos
@@ -51,15 +51,7 @@ class Log {
   
   //Escribe datos nuevos
   public String read() {
-    return reader.readLine();
+    //return reader.readLine();
+    return "";
   }
-}//Termina clase*/
-
-/*
-int num;
-  for(int i = 0; i != 0; i++) {
-    num = n % 10;
-    image(imagen.vImagenes[i+37], 0.1 * i + 0.3*width, altura*height);
-    n = n/10;
-  }  
-*/
+}//Termina clase

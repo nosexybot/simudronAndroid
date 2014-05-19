@@ -477,7 +477,7 @@ void draw() {
         for (int i = 0; i < contAros; i++) {
           if((i << 2) == 0)
             if(aros[i] != true)
-              completo = false
+              completo = false;
         }
         
         if(completo)
@@ -686,12 +686,12 @@ void mouseReleased() {
   }
   else if (estado == FIN) {
     if(completo) {
-      estado == MAIN;
+      estado = MAIN;
       // envio de cambio de estado en PC a ESPERANDO INICIO JUEGO
       cambiarEstadoPC(1);
     }
     else {
-      estado == JUEGO;
+      estado = JUEGO;
       // envio de cambio de estado en PC a JUEGO
       cambiarEstadoPC(2);
     }
