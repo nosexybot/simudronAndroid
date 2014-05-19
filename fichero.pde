@@ -1,24 +1,21 @@
-//Inicia clase Log
+/*//Inicia clase Log
 class Log {
   private PrintWriter output;  //Permite la creacion de archivos
+  private BufferedReader reader;
   private String path = sketchPath;  //Variable para guardar ruta de archivo 
   private String fileName;  //Variable para el nombre del archivo
-  private int id=1;  //id del archivo, se usa para renombrar
  
   //Constructor de la clase
   Log(String fileName) {
-    this.fileName=fileName;  //Asigamos nombre del archivo
-    if (exist(this.fileName)) {  //comprobamos si ya existe el nombre del archivo con la funcion exist()
-      rename();  //Si es verdadero se llama a la funcion rename()
-      output= createWriter(this.fileName);  //Se crea el archivo con el nombre nuevo
-    }
-    else {
-      output= createWriter(this.fileName); //Si no existe, se crea sin renombrar
+    this.fileName = fileName;  //Asigamos nombre del archivo
+    if (!exist(this.fileName)) {  //comprobamos si ya existe el nombre del archivo con la funcion exist()
+      output = createWriter(this.fileName); //Si no existe, se crea
+      reader = createReader(this.fileName);
     }
   }
  
   //Crea una lista de los archivos existentes en el directorio actual
-  private String[] listFileNames(String dir) {  //recibe como parametro la ruta actual
+  /*private String[] listFileNames(String dir) {  //recibe como parametro la ruta actual
     File file = new File(dir);  //Crea un objeto de la clase File
     if (file.isDirectory()) {  //Comprobamos que sea un directorio y no un archivo
       String names[] = file.list();  //Cargamos la lista de archivos en el vector names[]
@@ -40,27 +37,29 @@ class Log {
     return false;  //Regresa falso
   }
    
-  //Renombra el archivo para no sobreescribir
-  private void rename() {
-    String newName=(split(fileName, ".")[0]+"_"+str(id)+"."+split(fileName, ".")[1]); //Al nombre original se le asigna un indicador haciendo uso del id
-    if (exist(newName)) {  //Se comprueba si archivo con el nuevo nombre existe
-      id++;  //Se incrementa id hasta que se encuentra un archivo inexistente
-      rename();  //Es recursiva en caso de que siga exisitiendo el nombre
-    }
-    else {
-      fileName=newName;  //Se regresa el nuevo nombre
-      return;
-    }
-  }
-   
   //Cierra el archivo, para que sea utilizable
   public void close() {
     output.flush();  //Vaciamos buffer de escritura
     output.close();  //Cerramos el archivo
+    reader.close();  //Cerramos el archivo
   }
  
   //Escribe datos nuevos
   public void write(String data) {
-    output.print(data+";");  //Concatena los datos nuevos y asigna fin de linea
+    output.println(data);  //Concatena los datos nuevos y asigna fin de linea
   }
-}//Termina clase
+  
+  //Escribe datos nuevos
+  public String read() {
+    return reader.readLine();
+  }
+}//Termina clase*/
+
+/*
+int num;
+  for(int i = 0; i != 0; i++) {
+    num = n % 10;
+    image(imagen.vImagenes[i+37], 0.1 * i + 0.3*width, altura*height);
+    n = n/10;
+  }  
+*/

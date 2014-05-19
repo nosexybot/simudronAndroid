@@ -52,8 +52,8 @@ boolean[] aros = new boolean[100];
 int contAros = 0;
 boolean completo = true;
 int puntos = 0;
-double milis, tiempo;
-Log log;
+double milis, tiempoJuego;
+//Log log;
 
 // música
 APMediaPlayer musica1;
@@ -105,7 +105,7 @@ void setup() {
     sonido2.setVolume(1.0, 1.0);
     
     // fichero
-    log = new Log("puntuacion"); //Creamos el nuevo archivo
+    //log = new Log("puntuacion"); //Creamos el nuevo archivo
     
     // configuración inicial de los textos
     textAlign(CENTER, CENTER);
@@ -475,11 +475,10 @@ void draw() {
         break;
       case FIN:
         for (int i = 0; i < contAros; i++) {
-          if(i << 2 == 0)
+          if((i << 2) == 0)
             if(aros[i] != true)
               completo = false
         }
-        
         
         if(completo)
         {
@@ -516,6 +515,7 @@ void salir()
   miMensaje.add(0);
   oscP5.send(miMensaje, ipRemota);
   
+  //log.close(); //cerrar el fichero
   exit();
 }
 
@@ -608,9 +608,6 @@ void mouseReleased() {
         mouseY < 0.3*height + imagen.vImagenes[19].height/2 && 
         mouseX > 0.45*width - imagen.vImagenes[19].width/2 &&
         mouseX < 0.45*width + imagen.vImagenes[19].width/2) {
-          //if(
-          //player.pause();
-          //player.seekTo(0);
       sonido = !sonido;
     }
     else if(mouseY > 0.45*height - imagen.vImagenes[13].height/2 && 
@@ -667,21 +664,7 @@ void mouseReleased() {
       sonido1.pause();
       sonido2.pause();
       estado = PAUSE;
-    }
-    if(mouseY > 0.8*height - imagen.vImagenes[6].height/2 && 
-        mouseY < 0.8*height + imagen.vImagenes[6].height/2 && 
-        mouseX > 0.2*width - imagen.vImagenes[6].width/2 &&
-        mouseX < 0.2*width + imagen.vImagenes[6].width/2) {
-      //GIRAR
-    }
-    if(mouseY > 0.8*height - imagen.vImagenes[6].height/2 && 
-        mouseY < 0.8*height + imagen.vImagenes[6].height/2 && 
-        mouseX > 0.8*width - imagen.vImagenes[6].width/2 &&
-        mouseX < 0.8*width + imagen.vImagenes[6].width/2) {
-      //Subir/bajar
-    }
-      
-    
+    }     
   }
   else if(estado == PAUSE) {
     if(mouseY > 0.5*height - imagen.vImagenes[28].height/2 && 
@@ -701,6 +684,19 @@ void mouseReleased() {
       estado = MAIN;
     }
   }
+  else if (estado == FIN) {
+    if(completo) {
+      estado == MAIN;
+      // envio de cambio de estado en PC a ESPERANDO INICIO JUEGO
+      cambiarEstadoPC(1);
+    }
+    else {
+      estado == JUEGO;
+      // envio de cambio de estado en PC a JUEGO
+      cambiarEstadoPC(2);
+    }
+  }
+    
 }
 
 void cambiarEstadoPC(int estado) {
@@ -751,6 +747,12 @@ void oscEvent(OscMessage theOscMessage) {
   }
 }
 
-void intToMensaje(int n) {
+void intToMensaje(int n, float altura) {
+  int num;
+  for(int i = 0; i != 0; i++) {
+    num = n % 10;
+    image(imagen.vImagenes[i+37], 0.1 * i + 0.3*width, altura*height);
+    n = n/10;
+  }  
 }
 
