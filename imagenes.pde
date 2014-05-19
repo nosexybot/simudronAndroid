@@ -30,7 +30,7 @@
 * Resto de numeros (200 x 200) -> 39 - 46
 **************************************************/
 
-final int nImagenes = 47;
+final int nImagenes = 51;
 final String imagePrefix = "simudron";
 
 class Imagenes
