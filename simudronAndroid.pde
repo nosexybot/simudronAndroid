@@ -3,8 +3,14 @@
 //*********************************************************************
 import netP5.*;
 import oscP5.*;
+
+import android.view.MotionEvent;
+
 import ketai.net.*;
 import ketai.sensors.*;
+import ketai.ui.*;
+
+import apwidgets.*;
 
 //*********************************************************************
 // variables globales
@@ -13,7 +19,7 @@ import ketai.sensors.*;
 // ESTADOS de la aplicación
 final int CONECTANDO = 0, MAIN = 1, AYUDA1 = 2, AYUDA2 = 3;
 final int AYUDA3 = 4, PUNTOS = 5, AJUSTES = 6, JUEGO = 7; 
-final int PAUSE = 8, MAX_ESTADOS = 9;
+final int PAUSE = 8, FIN = 9, MAX_ESTADOS = 10;
 
 // variables de control de juego
 int estado, nivel /*1 = novato, 2 = aspirante, 3 = experto*/;
@@ -30,19 +36,39 @@ Imagenes imagen;
 OscP5 oscP5;
 KetaiSensor sensor;
 NetAddress ipRemota;
-String myIPAddress, ipPCRemoto = "192.168.1.2";
+String myIPAddress, ipPCRemoto = "147.156.235.195";
 
 // sensores
 float acelerometroX, acelerometroY, acelerometroZ;
-float giroscopoX, giroscopoY, giroscopoZ;
+float giroscopoZ;
+int botonIzqPulsado, botonDerPulsado;
 
 // control de posición de joysticks
 float joystickIzqX = 0.15*width;
 float joystickIzqY = 0.8*height;
 float joystickDerX = 0.85*width;
 float joystickDerY = 0.8*height; 
-boolean firstimeDer = true;
-boolean firstimeIzq = true;
+boolean firstimeDer, firstimeIzq;
+
+// puntuación
+boolean[] aros = new boolean[100];
+int contAros = 0;
+boolean completo = true;
+int puntos = 0;
+double milis, tiempoJuego;
+Log log; //fichero en el que se guardan la puntuaciones
+
+//vibracion y gestos
+KetaiVibrate vibracion;
+int maxTouchEvents = 2;
+MultiTouch[] mt;  
+//KetaiGesture gesture;
+
+// música
+APMediaPlayer musica1;
+APMediaPlayer sonido1;
+APMediaPlayer sonido2;
+
 
 //*********************************************************************
 // función de incialización
@@ -56,16 +82,49 @@ void setup() {
     imagen = new Imagenes(width, height);
     imageMode(CENTER);
     
+    //gestos y vibracion
+    //gesture = new KetaiGesture(this);
+    vibracion = new KetaiVibrate(this);
+    // Populate our MultiTouch array that will track all of our touch-points:
+    mt = new MultiTouch[maxTouchEvents];
+    for(int i=0; i < maxTouchEvents; i++) {
+      mt[i] = new MultiTouch();
+    }
+
+    
     // establecimiento de estado de inicio de programa
     estado = CONECTANDO;
     sonido = true;
     musica = true;
     control = true;
     nivel = 1;
+    firstimeDer = true;
+    firstimeIzq = true;
+    botonIzqPulsado = 0;
+    botonDerPulsado = 0;
     
     // inicialización de sensores
     sensor = new KetaiSensor(this);
     sensor.start();
+    
+    // inicialización música
+    musica1 = new APMediaPlayer(this);
+    musica1.setMediaFile("musica/pokemon.mp3");  
+    musica1.setLooping(true);
+    musica1.setVolume(1.0, 1.0);
+    
+    sonido1 = new APMediaPlayer(this);
+    sonido1.setMediaFile("musica/ascender.mp3");  
+    sonido1.setLooping(true);
+    sonido1.setVolume(1.0, 1.0);
+    
+    sonido2 = new APMediaPlayer(this);
+    sonido2.setMediaFile("musica/descender.mp3");  
+    sonido2.setLooping(true);
+    sonido2.setVolume(1.0, 1.0);
+    
+    // fichero
+    log = new Log("puntuacion"); //Creamos el nuevo archivo
     
     // configuración inicial de los textos
     textAlign(CENTER, CENTER);
@@ -121,6 +180,9 @@ void draw() {
         }
         break;
       case MAIN:
+        if(musica)
+          musica1.start();
+          
         image(imagen.vImagenes[32], 0.5*width, 0.5*height);  // menu principal
         image(imagen.vImagenes[17], 0.1*width, 0.85*height); // pulsador de "ajustes"
         image(imagen.vImagenes[9], 0.9*width, 0.85*height);  // pulsador de "salida"
@@ -341,40 +403,83 @@ void draw() {
                 firstimeDer = true;
                 firstimeIzq = true;
             }
+            
+            //envio de datos al PC
+            OscMessage miMensaje1 = new OscMessage("datosJoysticks");
+            miMensaje1.add(joystickIzqX);
+            miMensaje1.add(joystickIzqY);
+            miMensaje1.add(joystickDerX);
+            miMensaje1.add(joystickDerY);
+            oscP5.send(miMensaje1, ipRemota);
+        
+            // datos de los sensores
+            text("Joystick Izquierdo: " + "\n" +
+                 "x: " + nfp(joystickIzqX, 1, 3) + "\n" +
+                 "y: " + nfp(joystickIzqY, 1, 3) + "\n\n" +
+                 "Joystick Derecho: " + "\n" +
+                 "x: " + nfp(joystickDerX, 1, 3) + "\n" +
+                 "y: " + nfp(joystickDerY, 1, 3) + "\n\n" +
+                 "Local IP Address: \n" + myIPAddress + "\n\n", width/2, height/2);
         }
         else {
           image(imagen.vImagenes[6], 0.2*width, 0.8*height);
           image(imagen.vImagenes[6], 0.8*width, 0.8*height);
+          botonIzqPulsado = 0;
+          botonDerPulsado = 0;
           if(mousePressed) {
             if(mouseY > 0.8*height - imagen.vImagenes[6].height/2 && 
                 mouseY < 0.8*height + imagen.vImagenes[6].height/2 && 
                 mouseX > 0.2*width - imagen.vImagenes[6].width/2 &&
                 mouseX < 0.2*width + imagen.vImagenes[6].width/2) {
               //boton GIRAR pulsado
-              image(imagen.vImagenes[5], 0.2*width, 0.8*height);
+              image(imagen.vImagenes[50], 0.2*width, 0.8*height);
+              botonIzqPulsado = 1;
             }
+              
             if(mouseY > 0.8*height - imagen.vImagenes[6].height/2 && 
                 mouseY < 0.8*height + imagen.vImagenes[6].height/2 && 
                 mouseX > 0.8*width - imagen.vImagenes[6].width/2 &&
                 mouseX < 0.8*width + imagen.vImagenes[6].width/2) {
               //boton Subir/bajar pulsado
-              image(imagen.vImagenes[5], 0.8*width, 0.8*height);
+              image(imagen.vImagenes[50], 0.8*width, 0.8*height);
+              botonDerPulsado = 1;
             }  
           }
+
+          
+          //envio de datos al PC
+          OscMessage miMensaje2 = new OscMessage("datosAcelerometroGiroscopo");
+          miMensaje2.add(acelerometroX);
+          miMensaje2.add(acelerometroY);
+          miMensaje2.add(acelerometroZ);
+          miMensaje2.add(giroscopoZ);
+          miMensaje2.add(botonIzqPulsado);
+          miMensaje2.add(botonDerPulsado);
+          oscP5.send(miMensaje2, ipRemota);
+      
+          // datos de los sensores
+          text("Acelerómetro: " + "\n" +
+               "x: " + nfp(acelerometroX, 1, 3) + "\n" +
+               "y: " + nfp(acelerometroY, 1, 3) + "\n\n" +
+               "Giróscopo: " + "\n" +
+               "z: " + nfp(giroscopoZ, 1, 3) +"\n\n" +
+               "Boton izquierdo pulsado: " + botonIzqPulsado + "\n" +
+               "Boton derecho pulsado: " + botonDerPulsado + "\n\n" +
+               "Local IP Address: \n" + myIPAddress + "\n\n", width/2, height/2);
         }
         
-        //envio de datos al PC por funciones de eventos de sensores
         
-        // datos de los sensores
-        text("Acelerómetro: " + "\n" +
-             "x: " + nfp(acelerometroX, 1, 3) + "\n" +
-             "y: " + nfp(acelerometroY, 1, 3) + "\n" +
-             "z: " + nfp(acelerometroZ, 1, 3) + "\n\n" +
-             "Giróscopo: " + "\n" +
-             "x: " + nfp(giroscopoX, 1, 3) + "\n" +
-             "y: " + nfp(giroscopoY, 1, 3) + "\n" +
-             "z: " + nfp(giroscopoZ, 1, 3) +"\n\nLocal IP Address: \n" + myIPAddress + "\n\n", width/2, height/2);
-        
+        if(sonido)
+        {
+          if((joystickIzqY > 0.8*height && !control) || (acelerometroX > 8 && control))
+            sonido1.start();
+          else if ((joystickIzqY < 0.8*height && !control) || (acelerometroX < 2 && control))
+            sonido2.start();
+          else {
+            sonido1.pause();
+            sonido2.pause();
+          }
+        }
         // control de pulsador "atrás" cambiando imagen
         if(mousePressed) {
             if(mouseY > 0.15*height - imagen.vImagenes[15].height/2 && 
@@ -387,7 +492,31 @@ void draw() {
       case PAUSE:
         //Se mantiene la imagen anterior del juego
         image(imagen.vImagenes[28], 0.5*width, 0.5*height);  // imagen menú "continuar - salir"
-        //se en envia un pause al PC
+        break;
+      case FIN:
+        for (int i = 0; i < contAros; i++) {
+          if((i << 2) == 0)
+            if(aros[i] != true)
+              completo = false;
+        }
+        
+        if(completo)
+        {
+          for (int i = 0; i < contAros; i++) {
+            if(aros[i] = true)
+              puntos += 10;
+          }
+          image(imagen.vImagenes[49], 0.5*width, 0.5*height); 
+        }
+        else
+          image(imagen.vImagenes[48], 0.5*width, 0.5*height); 
+          
+        completo = true;
+        contAros = 0;
+        puntos = 0;
+        for (int i = 0; i < contAros; i++) {
+              aros[i] = false;
+         }
         break;
     }
     //---------------------------------------------------------------------------------------------
@@ -396,12 +525,6 @@ void draw() {
 //***********************************************************************************
 // control de ordenes sobre pulsaciones de botón
 //***********************************************************************************
-void mouseDragged() {
-  if(estado == JUEGO) {
-  //movimiento del joystick
-  }
-}
-
 void salir()
 {
   // envio de cambio de estado en PC a CONECTANDO
@@ -409,6 +532,7 @@ void salir()
   miMensaje.add(0);
   oscP5.send(miMensaje, ipRemota);
   
+  //log.close(); //cerrar el fichero
   exit();
 }
 
@@ -418,7 +542,7 @@ void mouseReleased() {
         mouseY < 0.85*height + imagen.vImagenes[7].height/2 && 
         mouseX > 0.2*width - imagen.vImagenes[7].width/2 &&
         mouseX < 0.2*width + imagen.vImagenes[7].width/2) {
-      estado = MAIN; 
+      //estado = MAIN; 
       // Llamada a la función de conexion
       initNetworkConnection();
       // envio de cambio de estado en PC a ESPERANDO INICIO JUEGO
@@ -428,16 +552,16 @@ void mouseReleased() {
         mouseY < 0.85*height + imagen.vImagenes[9].height/2 &&
         mouseX > 0.9*width - imagen.vImagenes[9].width/2 &&
         mouseX < 0.9*width + imagen.vImagenes[9].width/2)
-      salir();
+      exit();
   }
   else if(estado == MAIN) {
     if(mouseY > 0.5*height - imagen.vImagenes[32].height/2 && 
         mouseY < 0.5*height - imagen.vImagenes[32].height/6 &&
         mouseX > 0.5*width - imagen.vImagenes[32].width/2 &&
         mouseX < 0.5*width + imagen.vImagenes[32].width/2) {
+      estado = JUEGO;
       // envio de cambio de estado en PC a JUEGO
       cambiarEstadoPC(2);
-      estado = JUEGO;
     }
     else if(mouseY > 0.5*height - imagen.vImagenes[32].height/6 && 
         mouseY < 0.5*height + imagen.vImagenes[32].height/6&&
@@ -500,13 +624,25 @@ void mouseReleased() {
     else if(mouseY > 0.3*height - imagen.vImagenes[19].height/2 && 
         mouseY < 0.3*height + imagen.vImagenes[19].height/2 && 
         mouseX > 0.45*width - imagen.vImagenes[19].width/2 &&
-        mouseX < 0.45*width + imagen.vImagenes[19].width/2)
+        mouseX < 0.45*width + imagen.vImagenes[19].width/2) {
+      if(sonido) {   
+        sonido1.pause();
+        sonido2.pause();
+      }
       sonido = !sonido;
+    }
     else if(mouseY > 0.45*height - imagen.vImagenes[13].height/2 && 
         mouseY < 0.45*height + imagen.vImagenes[13].height/2 && 
         mouseX > 0.45*width - imagen.vImagenes[13].width/2 &&
-        mouseX < 0.45*width + imagen.vImagenes[13].width/2)
+        mouseX < 0.45*width + imagen.vImagenes[13].width/2) {
+      if(musica) {   
+        musica1.pause();
+        musica1.seekTo(0);
+      }
+      else
+        musica1.start();
       musica = !musica;
+    }
     else if(mouseY > 0.75*height - imagen.vImagenes[19].height/2 && 
         mouseY < 0.75*height + imagen.vImagenes[19].height/2 && 
         mouseX > 0.5*width - imagen.vImagenes[19].width/2 &&
@@ -520,61 +656,68 @@ void mouseReleased() {
     else if(mouseY > 0.45*height - imagen.vImagenes[19].height/2 && 
         mouseY < 0.45*height + imagen.vImagenes[19].height/2 && 
         mouseX > 0.95*width - imagen.vImagenes[19].width/2 &&
-        mouseX < 0.95*width + imagen.vImagenes[19].width/2)
+        mouseX < 0.95*width + imagen.vImagenes[19].width/2) {
       nivel = 3;
+      cambiarEstadoPC(12);
+    }
     else if(mouseY > 0.6*height - imagen.vImagenes[19].height/2 && 
         mouseY < 0.6*height + imagen.vImagenes[19].height/2 && 
         mouseX > 0.95*width - imagen.vImagenes[19].width/2 &&
-        mouseX < 0.95*width + imagen.vImagenes[19].width/2)
+        mouseX < 0.95*width + imagen.vImagenes[19].width/2) {
       nivel = 2;
+      cambiarEstadoPC(11);
+    }
     else if(mouseY > 0.75*height - imagen.vImagenes[19].height/2 && 
         mouseY < 0.75*height + imagen.vImagenes[19].height/2 && 
         mouseX > 0.95*width - imagen.vImagenes[19].width/2 &&
-        mouseX < 0.95*width + imagen.vImagenes[19].width/2)
+        mouseX < 0.95*width + imagen.vImagenes[19].width/2) {
       nivel = 1;
+      cambiarEstadoPC(10);
+    }
   }
   else if(estado == JUEGO) {
     if(mouseY > 0.15*height - imagen.vImagenes[15].height/2 && 
         mouseY < 0.15*height + imagen.vImagenes[15].height/2 && 
         mouseX > 0.1*width - imagen.vImagenes[15].width/2 &&
         mouseX < 0.1*width + imagen.vImagenes[15].width/2) {
+      sonido1.pause();
+      sonido2.pause();
+      estado = PAUSE;
       // envio de cambio de estado en PC a PAUSE
       cambiarEstadoPC(3);
-      estado = PAUSE;
-    }
-    if(mouseY > 0.8*height - imagen.vImagenes[6].height/2 && 
-        mouseY < 0.8*height + imagen.vImagenes[6].height/2 && 
-        mouseX > 0.2*width - imagen.vImagenes[6].width/2 &&
-        mouseX < 0.2*width + imagen.vImagenes[6].width/2) {
-      //GIRAR
-    }
-    if(mouseY > 0.8*height - imagen.vImagenes[6].height/2 && 
-        mouseY < 0.8*height + imagen.vImagenes[6].height/2 && 
-        mouseX > 0.8*width - imagen.vImagenes[6].width/2 &&
-        mouseX < 0.8*width + imagen.vImagenes[6].width/2) {
-      //Subir/bajar
-    }
-      
-    
+    }     
   }
   else if(estado == PAUSE) {
     if(mouseY > 0.5*height - imagen.vImagenes[28].height/2 && 
         mouseY < 0.5*height &&
         mouseX > 0.5*width - imagen.vImagenes[28].width/2 &&
         mouseX < 0.5*width + imagen.vImagenes[28].width/2) {
+      estado = JUEGO;
       // envio de cambio de estado en PC a JUEGO
       cambiarEstadoPC(2);
-      estado = JUEGO;
     }
     else if(mouseY > 0.5*height && 
         mouseY < 0.5*height + imagen.vImagenes[28].height/2 &&
         mouseX > 0.5*width - imagen.vImagenes[28].width/2 &&
         mouseX < 0.5*width + imagen.vImagenes[28].width/2) {
+      estado = MAIN;
       // envio de cambio de estado en PC a ESPERANDO INICIO JUEGO
       cambiarEstadoPC(1);
-      estado = MAIN;
     }
   }
+  else if (estado == FIN) {
+    if(completo) {
+      estado = MAIN;
+      // envio de cambio de estado en PC a ESPERANDO INICIO JUEGO
+      cambiarEstadoPC(1);
+    }
+    else {
+      estado = JUEGO;
+      // envio de cambio de estado en PC a JUEGO
+      cambiarEstadoPC(2);
+    }
+  }
+    
 }
 
 void cambiarEstadoPC(int estado) {
@@ -599,36 +742,78 @@ void onAccelerometerEvent(float x, float y, float z)
   acelerometroX = x;
   acelerometroY = y;
   acelerometroZ = z;
-  
-  if (estado == JUEGO) {
-    OscMessage miMensaje = new OscMessage("datosAcelerometro");
-    miMensaje.add(acelerometroX);
-    miMensaje.add(acelerometroY);
-    miMensaje.add(acelerometroZ);
-    miMensaje.add(1);
-    //oscP5.send(miMensaje, ipRemota);
-  }
 }
 
 void onGyroscopeEvent(float x, float y, float z)
 {
-  giroscopoX = x;
-  giroscopoY = y;
   giroscopoZ = z;
-  
-  if (estado == JUEGO) {
-    OscMessage miMensaje = new OscMessage("datosGiroscopo");
-    miMensaje.add(giroscopoX);
-    miMensaje.add(giroscopoY);
-    miMensaje.add(giroscopoZ);
-    //oscP5.send(miMensaje, ipRemota);
-  }
 }
 
 void oscEvent(OscMessage theOscMessage) {
   // El PC se ha conectado correctamente
   if (theOscMessage.checkTypetag("i")) {
-    estado = MAIN;
+    if(theOscMessage.get(0).intValue() == 2) {
+      vibracion.vibrate(1000);
+      estado = estado;
+    }
+    else {
+      estado = MAIN;
+      vibracion.vibrate(1000);
+    }
   }
+  
+  // Datos para calcular la puntuación
+  if (theOscMessage.checkTypetag("ii")) {
+    aros[theOscMessage.get(0).intValue()] = true;
+    contAros++;
+    if(theOscMessage.get(1).intValue() == 1) {
+      estado = FIN;
+    }
+  }
+}
+
+void intToMensaje(int n, float altura, float posFinal) {
+  int num;
+  for(int i = 0; i != 0; i++) {
+    num = n % 10;
+    image(imagen.vImagenes[num+37], posFinal*width - 0.1 * i, altura*height);
+    n = n/10;
+  }  
+}
+
+/*public boolean surfaceTouchEvent(MotionEvent me) {
+  // Find number of touch points:
+  int pointers = me.getPointerCount();
+  // Set all MultiTouch data to "not touched":
+  for(int i=0; i < maxTouchEvents; i++) {
+    mt[i].touched = false;
+  }
+  //  Update MultiTouch that 'is touched':
+  for(int i=0; i < maxTouchEvents; i++) {
+    if(i < pointers) {
+      mt[i].update(me, i);
+    }
+    // Update MultiTouch that 'isn't touched':
+    else {
+      mt[i].update();
+    }
+  }
+  // If you want the variables for motionX/motionY, mouseX/mouseY etc.
+  // to work properly, you'll need to call super.surfaceTouchEvent()
+  return super.surfaceTouchEvent(me);
+}*/
+
+void onDestroy() {
+  super.onDestroy();
+  
+  // envio de cambio de estado en PC a CONECTANDO
+  OscMessage miMensaje = new OscMessage("cambioEstado");
+  miMensaje.add(0);
+  oscP5.send(miMensaje, ipRemota);
+  
+  //parar musica
+  musica1.pause();
+  sonido1.pause();
+  sonido2.pause();
 }
 
